@@ -26,7 +26,7 @@ def load_data(url, sep):
 
 # Define constants in a dictionary
 config = {
-    'file_path': "https://raw.githubusercontent.com/Alex-Malainic/Solar-Energy/main/SunPower_Full.csv",
+    'file_path': "https://raw.githubusercontent.com/Vaishnav8395/ReGenCast/main/SunPower_Full.csv",
     'target_variable': 'Active_Power',
     'predictors': ['temperature_2m', 'relativehumidity_2m', 'direct_radiation', 'diffuse_radiation',  'windspeed_10m', 'cloudcover', 'season'],
     'categorical_variables': ['season'],
@@ -134,7 +134,7 @@ def classify_weather_type(new_train, test):
         interval_train_dataset = new_train[new_train['time_interval'] == interval].copy()
         interval_test_dataset = test[test['time_interval'] == interval].copy()
         try:
-            grid = joblib.load(urlopen(f'https://raw.githubusercontent.com/Alex-Malainic/Solar-Energy/main/ClassifiedWeatherTypes/RF_Weather_{interval}_.pkl'))
+            grid = joblib.load(urlopen(f'https://raw.githubusercontent.com/Vaishnav8395/ReGenCast/master/ClassifiedWeatherTypes/RF_Weather_{interval}_.pkl'))
             #grid = joblib.load(f'ClassifiedWeatherTypes\\RF_Weather_{interval}_.pkl')  #load fitted model if exists
             classified_weather_type = predict_weather_type(grid, interval_test_dataset[config['predictors']].copy())
         except:
@@ -228,7 +228,7 @@ def train_predict_MLP_model(new_stand_train, new_stand_test):
         y_train = new_stand_train[(new_stand_train['time_interval'] == interval) & (new_stand_train['weather_type'] == weather_type)][config['target_variable']]
         X_test = new_stand_test[(new_stand_test['time_interval'] == interval) & (new_stand_test['weather_type'] == weather_type)][config['predictors']]
         try:
-            md = joblib.load(urlopen(f'https://raw.githubusercontent.com/Alex-Malainic/Solar-Energy/main/Fitted_Models/MLP_fitted_{interval}_{weather_type}.pkl'))
+            md = joblib.load(urlopen(f'https://raw.githubusercontent.com/Vaishnav8395/ReGenCast/master/Fitted_Models/MLP_fitted_{interval}_{weather_type}.pkl'))
             #md = joblib.load(f'Fitted_Models\\MLP_fitted_{interval}_{weather_type}.pkl')
             predictions = md.predict(X_test)
         except:
@@ -252,7 +252,7 @@ def train_predict_XGB_model(new_stand_train, new_stand_test):
         y_train = new_stand_train[(new_stand_train['time_interval'] == interval) & (new_stand_train['weather_type'] == weather_type)][config['target_variable']]
         X_test = new_stand_test[(new_stand_test['time_interval'] == interval) & (new_stand_test['weather_type'] == weather_type)][config['predictors']]
         try:
-            md = joblib.load(urlopen(f'https://raw.githubusercontent.com/Alex-Malainic/Solar-Energy/main/Fitted_Models/XGB_fitted_{interval}_{weather_type}.pkl'))
+            md = joblib.load(urlopen(f'https://raw.githubusercontent.com/Vaishnav8395/ReGenCast/master/Fitted_Models/XGB_fitted_{interval}_{weather_type}.pkl'))
             #md = joblib.load(f'Fitted_Models\\XGB_fitted_{interval}_{weather_type}.pkl')
             predictions = md.predict(X_test)
         except:
@@ -275,7 +275,7 @@ def train_predict_RF_model(new_stand_train, new_stand_test):
         y_train = new_stand_train[(new_stand_train['time_interval'] == interval) & (new_stand_train['weather_type'] == weather_type)][config['target_variable']]
         X_test = new_stand_test[(new_stand_test['time_interval'] == interval) & (new_stand_test['weather_type'] == weather_type)][config['predictors']]
         try:
-            md = joblib.load(urlopen(f'https://raw.githubusercontent.com/Alex-Malainic/Solar-Energy/main/Fitted_Models/RF_fitted_{interval}_{weather_type}.pkl'))
+            md = joblib.load(urlopen(f'https://raw.githubusercontent.com/Vaishnav8395/ReGenCast/master/Fitted_Models/RF_fitted_{interval}_{weather_type}.pkl'))
             #md = joblib.load(f'Fitted_Models\\RF_fitted_{interval}_{weather_type}.pkl')
             predictions = md.predict(X_test)
         except:
@@ -330,9 +330,9 @@ def train_SHAP_values(df):
         subset_data = df[(df['weather_type'] == weather_type) & (df['time_interval'] == interval)].iloc[:, :-2]
         #import models
 
-        XGB_gr = joblib.load(urlopen(f'https://raw.githubusercontent.com/Alex-Malainic/Solar-Energy/main/Fitted_Models/XGB_fitted_{interval}_{weather_type}.pkl'))
+        XGB_gr = joblib.load(urlopen(f'https://raw.githubusercontent.com/Vaishnav8395/ReGenCast/master/Fitted_Models/XGB_fitted_{interval}_{weather_type}.pkl'))
         XGB_estimator = XGB_gr.best_estimator_
-        RF_gr = joblib.load(urlopen(f'https://raw.githubusercontent.com/Alex-Malainic/Solar-Energy/main/Fitted_Models/RF_fitted_{interval}_{weather_type}.pkl'))
+        RF_gr = joblib.load(urlopen(f'https://raw.githubusercontent.com/Vaishnav8395/ReGenCast/master/Fitted_Models/RF_fitted_{interval}_{weather_type}.pkl'))
         RF_estimator = RF_gr.best_estimator_
 
         #compute shap values for current interval and weather type
@@ -350,9 +350,9 @@ def train_SHAP_values(df):
     return XGB_shap_df, RF_shap_df
 
 def import_SHAP_values():
-    MLP_shap_df = pd.read_csv("https://raw.githubusercontent.com/Alex-Malainic/Solar-Energy/main/Fitted_Models/MLP_Shap.csv", sep = '\t')
-    XGB_shap_df = pd.read_csv("https://raw.githubusercontent.com/Alex-Malainic/Solar-Energy/main/Fitted_Models/XGB_Shap.csv", sep = '\t')
-    RF_shap_df = pd.read_csv("https://raw.githubusercontent.com/Alex-Malainic/Solar-Energy/main/Fitted_Models/RF_Shap.csv", sep = '\t')
+    MLP_shap_df = pd.read_csv("https://raw.githubusercontent.com/Vaishnav8395/ReGenCast/master/Fitted_Models/MLP_Shap.csv", sep = '\t')
+    XGB_shap_df = pd.read_csv("https://raw.githubusercontent.com/Vaishnav8395/ReGenCast/master/Fitted_Models/XGB_Shap.csv", sep = '\t')
+    RF_shap_df = pd.read_csv("https://raw.githubusercontent.com/Vaishnav8395/ReGenCast/master/Fitted_Models/RF_Shap.csv", sep = '\t')
     return MLP_shap_df, XGB_shap_df, RF_shap_df
 
 # Main order of functions
