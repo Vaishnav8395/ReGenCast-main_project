@@ -590,3 +590,107 @@ elif selected_subpage == 'ML Model Estimation':
 
         # -------------------------------------------------- Forecast ------------------------------------------------------
       
+elif selected_subpage == 'Forecast':
+        @st.cache_data
+        def get_weather_forecast_data():
+                lat = -23.760363
+                long = 133.874719
+
+                Predictors = ['temperature_2m', 'relativehumidity_2m', 'direct_radiation', 'diffuse_radiation',  'windspeed_10m', 'cloudcover']
+                start_date = str(date.today()+ timedelta(days=1))
+                end_date = str(date.today()+ timedelta(days=4))
+
+                r = requests.get('https://api.open-meteo.com/v1/forecast', params={'latitude':lat, 'longitude': long, 'timezone': 'auto', 'start_date':start_date , 'end_date': end_date , 'hourly' : Predictors}).json() #timezone = auto so that it matches the local timezone
+
+                weather_df = pd.DataFrame(columns = Predictors )
+                time = pd.to_datetime(np.array(r['hourly']['time']))
+                weather_df['date'] = time
+                for p in Predictors:
+                        weather_df[p] = np.array(r['hourly'][p])
+                weather_df['date'] = pd.to_datetime(weather_df['date'])
+                return weather_df
+        
+        @st.cache_data
+        def classify_weather_forecast_type(df):
+                new_df = pd.DataFrame()
+                for interval in config['time_intervals']:
+                        interval_dataset = df[df['time_interval'] == interval].copy()
+                        try:
+                                grid = joblib.load(urlopen(f'https://raw.githubusercontent.com/Alex-Malainic/Solar-Energy/main/ClassifiedWeatherTypes/RF_Weather_{interval}_.pkl'))
+                                classified_weather_type = module.predict_weather_type(grid, interval_dataset[config['predictors']].copy())
+                        except:
+                                raise ValueError("Importing weather type classifiers failed.")
+                        classified_weather_type['time_interval'] = interval
+                        print(f"Weather type Predictions done for {interval}")
+                        new_df = pd.concat([new_df, classified_weather_type])
+                new_df = new_df.sort_index()
+                return new_df
+
+        @st.cache_data
+        def standardize_data_weather_forecast(df):
+                X_new_test = df[config['standardize_predictor_list']]
+                #save fitted predictor
+                predictor_scaler_fit = joblib.load(urlopen(f'https://raw.githubusercontent.com/Alex-Malainic/Solar-Energy/main/Fitted_Standardizers/std_scaler.bin'))
+                X_new_test = predictor_scaler_fit.transform(X_new_test)
+                
+                new_stand_df = pd.DataFrame(X_new_test, index=df[config['standardize_predictor_list']].index, columns=df[config['standardize_predictor_list']].columns)
+                new_stand_df = pd.concat([new_stand_df, df[['season','weather_type', 'time_interval']]], axis = 1)
+                return  new_stand_df
+        @st.cache_data
+        def predict_forecast_MLP(new_stand_test):
+                forecast_test = pd.DataFrame()
+                for interval, weather_type in product(config['time_intervals'], config['weather_types']):
+                        X_test = new_stand_test[(new_stand_test['time_interval'] == interval) & (new_stand_test['weather_type'] == weather_type)][config['predictors']]
+                        if len(X_test != 0):
+                                md = joblib.load(urlopen(f'https://raw.githubusercontent.com/Alex-Malainic/Solar-Energy/main/Fitted_Models/MLP_fitted_{interval}_{weather_type}.pkl'))
+                                predictions = md.predict(X_test)
+                                print(f"Energy Predictions done for {interval, weather_type}")
+                                TestingData=pd.DataFrame(data=X_test.copy(), columns=X_test.columns)
+                                TestingData['PredictedTotalPower']=predictions
+                                forecast_test = pd.concat([forecast_test, TestingData])
+                forecast_test = forecast_test.sort_index()
+                return forecast_test 
+
+
+        weather_forecast_df = get_weather_forecast_data()
+        weather_forecast_df = module.add_season(weather_forecast_df)
+        weather_forecast_df = module.choose_interval(weather_forecast_df)
+        weather_forecast_df = module.detect_time_interval(weather_forecast_df)
+        ord_enc = OrdinalEncoder()
+        season = ord_enc.fit_transform(np.array(weather_forecast_df['season']).reshape(-1,1))
+        weather_forecast_df['season'] = season
+        weather_forecast_df = classify_weather_forecast_type(weather_forecast_df)
+        weather_forecast_df_standardized = standardize_data_weather_forecast(weather_forecast_df)
+        predicted_forecast = predict_forecast_MLP(weather_forecast_df_standardized)
+        predicted_forecast = pd.concat([predicted_forecast, weather_forecast_df_standardized[['weather_type']]], axis = 1)
+
+
+        #unstandardize data
+
+        predictor_scaler_fit = joblib.load(urlopen(f'https://raw.githubusercontent.com/Alex-Malainic/Solar-Energy/main/Fitted_Standardizers/std_scaler.bin'))
+
+        unst_data = predictor_scaler_fit.inverse_transform(predicted_forecast[config['standardize_predictor_list']])
+
+        predicted_forecast_unst = predicted_forecast.copy()
+        predicted_forecast_unst[config['standardize_predictor_list']] = unst_data
+
+        with chart_container(predicted_forecast_unst):
+                        line_chart(
+                        data=predicted_forecast_unst.reset_index(),
+                        x='date',
+                        y='PredictedTotalPower',
+                        title="Forecast - Energy Generation for the next 3 days",
+                )
+                        
+        #API call to get dataset
+        #show dataset and be able to export it
+        #model forecast , be able to export it?
+
+
+
+
+
+
+# cd "PV Energy\Open_Meteo_SunPower" 
+# streamlit run web_app.py   
+
